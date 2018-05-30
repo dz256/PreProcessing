@@ -9,12 +9,9 @@ for j=1:numel(pathways)
     if(pathways(j).mvmt==1)
         continue
     end
-    mdir = dir([motionFiles,'*',num2str(pathways(j).mouse),'_',pathways(j).type]);
-    if numel(mdir) == 0
-        continue
-    end
-    cd([motionFiles,mdir(1).name])
-    savName = "mo_"+mdir(1).name(8:end);
+    mdir = dir([motionFiles,,pathways(j).mouse])
+    cd(motionFiles(j).name)
+    savName = "mo_"+motionFiles(j).name;
     % load verfile
     mat = dir('*.mat');
     load(mat(1).name);

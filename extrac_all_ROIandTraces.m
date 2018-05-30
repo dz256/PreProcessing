@@ -1,10 +1,18 @@
 % extract all ROIs, Simon
-images = dir('Z:\Data\DanaTemp\minmax\M*');
+pathways = table2struct( readtable('Z:\Data\DanaTemp\PreProcessing\new_data\pathways.xlsx') );
+imageDir = 'Z:\Data\DanaTemp\PreProcessing\minmax\MaxMin_';
 %tifdir = 'Z:\Data\DanaTemp\processedVids_6OHDA\';
-tifdir = 'Z:\Data\DanaTemp\new_data\Processed\';
-sdavedir =  'Z:\Data\DanaTemp\ROIandTraces\';
-parfor im = 1:numel(images)
-   a =load([images(im).folder,'\',images(im).name]);
+tifdir = 'Z:\Data\DanaTemp\PreProcessing\new_data\Processed\';
+sdavedir =  'Z:\Data\DanaTemp\PreProcessing\ROIandTraces\';
+parfor im = 1:numel(pathways)
+    if(pathways(im).ROI==1)
+        continue
+    end
+   Name =[imageDir,num2str(pathways(im).mouse),'_',pathways(im).type,'.mat'];
+   if (exist(Name, 'file') ~= 2)
+       continue
+   end
+   a =load(Name); 
    I = a.I;
    a = []
    %I(I>2000)=2000;
@@ -22,6 +30,8 @@ parfor im = 1:numel(images)
    r_out=extract_trace(R, 0,trList,tifdir);
    parsave([sdavedir,'ROI',suffix],R,[sdavedir,'trace',suffix],r_out)
    [R,r_out,I] = deal([])
+   pathways(im).ROI=1;
+   pathways(im).trace=1;
 end
 
 
