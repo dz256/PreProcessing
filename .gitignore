@@ -1,5 +1,17 @@
 *.tif
 *.mat
+*.sev
+*.Tdx
+*.Tbk
+*.tev
+*.tsq
+*.fdf
+*.fif
+*.fhf
+*desktop.ini
+*Thumbs.db
 6OHDA_ephys_newData/
 Ephys_6OHDA/
 ExtractedEphys/
+Movement_files6OHDA/
+
