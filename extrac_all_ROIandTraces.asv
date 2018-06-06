@@ -24,11 +24,11 @@ parfor im = 1:numel(pathways)
        continue
    end
    R = ROItoStruct(I, R);
-   trList = dir([tifdir,'m_f_n_',suffix,'_*.tif']);
+   trList = dir([tifdir,'m_f_n',suffix(1:end-4),'_*.tif']);
    [~,idx] = sort(cellfun(@(x) str2num(char(regexp(x,'(?<=_)(\d*)(?=\.)','match'))),{trList.name}));
    trList = trList(idx);
    r_out=extract_trace(R, 0,trList,tifdir);
-   parsave([sdavedir,'ROI_',suffix],R,[sdavedir,'trace_',suffix],r_out)
+   parsave([sdavedir,'ROI',suffix],R,[sdavedir,'trace',suffix],r_out)
    [R,r_out,I] = deal([])
    pathways(im).ROI=1;
    pathways(im).trace=1;

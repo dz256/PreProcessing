@@ -32,8 +32,8 @@ for j=1:numel(pathways)
    %save
    save (saveDir+savName,'rotation','t','speed','phi')
    cd(homeDir) 
-   
-   clearvars -except motionFiles j skipFolders saveDir homeDir
+   pathways(j).mvmt=1;
+   clearvars -except motionFiles j skipFolders saveDir homeDir pathways
 end
     
     

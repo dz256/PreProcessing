@@ -36,11 +36,6 @@ extract_all_motion
 T = struct2table(pathways);
 writetable(T,'Z:\Data\DanaTemp\PreProcessing\new_data\pathways.xlsx')
 % extract ephys:
-%=========================
-%       TO DO: edit extruct ePhys
-
-
-
 extract_all_ephys_newData
 T = struct2table(pathways);
 writetable(T,'Z:\Data\DanaTemp\PreProcessing\new_data\pathways.xlsx')
