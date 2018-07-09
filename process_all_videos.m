@@ -39,3 +39,6 @@ writetable(T,'Z:\Data\DanaTemp\PreProcessing\new_data\pathways.xlsx')
 extract_all_ephys_newData
 T = struct2table(pathways);
 writetable(T,'Z:\Data\DanaTemp\PreProcessing\new_data\pathways.xlsx')
+
+!git add .
+!git commit -m "Pathways file updated"
