@@ -8,6 +8,14 @@
 *.fdf
 *.fif
 *.fhf
+
+*.elp
+*.fdt
+*.set
+
+*.pptx
+*.png
+
 *desktop.ini
 *Thumbs.db
 6OHDA_ephys_newData/

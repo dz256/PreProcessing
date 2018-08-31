@@ -21,14 +21,14 @@ for j=1:numel(pathways)
     % extract bdata and bInfo
    [bData, bInfo] = getData(vrffiles);
    % get movement components: 
-   [~, ~, dxdy, rotation] = getMovement(bData);
+   [~, rel_direction, dxdy, rotation] = getMovement(bData);
    % process movement and save
    dy = dxdy(:,2); 
    dx = dxdy(:,1);
    t = bInfo.Time-bInfo.Time(1);
    dt = bInfo.Dt;
-   speed = sqrt((dy./dt).^2+(dx./dt).^2);
-   phi = atan2(dy,dx);
+   speed = sqrt((dy).^2+(dx).^2);
+   phi = rel_direction; % direction a.k.a angle from Y axis
    %save
    save (saveDir+savName,'rotation','t','speed','phi')
    cd(homeDir) 

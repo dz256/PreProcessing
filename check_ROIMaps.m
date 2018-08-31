@@ -29,8 +29,10 @@ for im = 1:numel(pathways)
     nROI = size(R,1);
     % add undetected ROIs
     R = SemiSeg(I,R);
+    r_out = trace;
     save([ROIdir,'ROI_',suffix],'R')
-    save([ROIdir,'trace_',suffix],'trace')
+    save([ROIdir,'trace_',suffix],'r_out')
+    clear r_out
     pathways(im).ROI_check = nROI;
     close all
     button = questdlg('Would yo like to do another session?',...

@@ -2,19 +2,19 @@
 % dxdy is delta in x and y directions, and direction is the net direction
 % of the distance vector. Also, positive dTheta = rotating clockwise!
 % positive dxdy are rightward and forward, respectively
-function [distance, rel_direction, dxdy, dTheta] = getMovementLaser3(data)
+function [distance, rel_direction, dxdy, dTheta] = getMovement(data)
 %%data should be in form: (dx dy dx dy;
 %                         dr dTheta dPhi 0;
 %                        [vM.x vM.y vM.z vM.omega]; ...). We onlyd use the
 %                        first row.
 
-unitsPer2PiRotationL = 2.5731e+04; % FIND CONVERSION VALUES FOR THESE
-unitsPer2PiRotationR = 2.4813e+04; % FIND CONVERSION VALUES FOR THESE
+unitsPer2PiRotationL = 865.2385; % -765.5977 -929.6576 -877.4440 -982.9513 -877.1354; 952.8061  815.5043  799.9931  876.1295  775.1660 
+unitsPer2PiRotationR = 929.7473; % -973.4640 -856.4687 -895.6260 -963.4010 -957.7862; 1.0e+03 * [1.1038    1.0120    0.7676    0.8820    0.8853]
 
-unitsPerRotationL = 2.3797e+04; %average of three complete rotations
-unitsPerRotationR = 2.0919e+04; %average of three complete rotations
 
-ballCircumferenceIn = 25.125; %measured in lab4.2059e+05
+unitsPerRotationL = 958.9967; %average of three complete rotations
+unitsPerRotationR = 625.6511; %average of three complete rotations
+ballCircumferenceIn = 25.125; %measured in lab
 ballCircumferenceCm = ballCircumferenceIn*2.54; %definition
 ballRadiusCm  = ballCircumferenceCm/(2*pi); %definition
 sensorAngleDegrees = 78; %measured in lab
@@ -37,12 +37,12 @@ dTheta = (dThetaL + dThetaR)/2;
 
 
 % Let one axis travel toward the plane of the right sensor, and let movement in this direction be called dy. Let the other
-% axis travel orthogonally to this first sensor, and let movement in thisy 
+% axis travel orthogonally to this first sensor, and let movement in this
 % direction be dx. So, we can decompose each time period as having one rotation around axis dy,
 % and one rotation around axis dx. 
 
 
-dy = dr; %distance toward right sensorc
+dy = dr; %distance toward right sensor
 
 % Next, find the sums of the projections of readings from both axes is the
 % the left sensor measurement: this will be the rotation around the dx axis.

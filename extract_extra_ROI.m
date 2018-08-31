@@ -16,11 +16,11 @@ for im = 1:numel(pathways)
     trList = dir([tifdir,'m_f_n_',suffix,'_*.tif']);
     [~,idx] = sort(cellfun(@(x) str2num(char(regexp(x,'(?<=_)(\d*)(?=\.)','match'))),{trList.name}));
     trList = trList(idx);
-    r_out=extract_trace(R(nROI:end), 0,trList,tifdir); 
+    r_out=extract_trace(R((nROI+1):end), 0,trList,tifdir); 
     trace = load([ROIdir,'trace_',suffix,'.mat']);
     trace = trace.r_out;
     % combine traces, save, and update pathways
-    r_out = [r_out,trace];
+    r_out = [trace,r_out];
     save([ROIdir,'trace_',suffix],'r_out')
     clear r_out
     pathways(im).re_extract =1;
