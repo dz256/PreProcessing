@@ -101,11 +101,11 @@ function R_s = markRedCells(Ired,Ic,R,PV)
 
 
    overlayROI_Kyle(Ic,R)
-   overlayROI_Kyle(Ir,R)
+   overlayROI_Kyle(Ired,R)
    pause
    
    mb = msgbox('Please remove any ROIs that are marked with tdTomato');
-   [~, R_r] = SemiSeg_Remove(Ired,R)
+   [~, R_r] = SemiSeg_Remove(Ir,R)
    R_s = R;
    if PV
     [R_s.isPV] = deal(0);
