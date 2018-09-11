@@ -89,7 +89,7 @@ function R_s = markRedCells(Ired,Ic,R,PV)
    end
    zoom reset
    outputView = imref2d(size(Ired));
-   tform = estimateGeometricTransform([xr,yr],[xc,yc],'affine')
+   tform = estimateGeometricTransform([xr,yr],[xc,yc],'similarity')
    Ir = imwarp(Ired,tform,'OutputView',outputView);
    figure;
    subplot(2,2,1)
