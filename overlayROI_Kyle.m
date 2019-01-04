@@ -1,6 +1,6 @@
 function overlayROI_Kyle(Im, CellList)
 NumMinPixels = 5; 
-pixel_list = 'pixel_idx';
+pixel_list = 'PixelIdxList';
 sz = size(Im);
 
 figure; 

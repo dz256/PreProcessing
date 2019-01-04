@@ -87,8 +87,10 @@ function [CellList, allRemoved] = SemiSeg_Remove(singleFrame, inputCellList)
     
     if exist('smallrois','var')
         allRemoved = sort(horzcat(smallrois,rmrois));
-    else
+    elseif exist('rmrois','var')
         allRemoved=rmrois;
+    else
+        allRemoved = [];
     end
     
     CellList(allRemoved) = [];

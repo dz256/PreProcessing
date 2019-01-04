@@ -2,6 +2,7 @@
 pathways = dir('Z:\Data\DanaTemp\PreProcessing\green\0*.tif');
 savedir = 'Z:\Data\DanaTemp\PreProcessing\green\';
 
+
 for f=1:size(pathways,1)
     filename={pathways(f).name};
     cd(pathways(1).folder)

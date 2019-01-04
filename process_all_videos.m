@@ -20,6 +20,7 @@ for f=1:size(pathways,1)
     pathways(f).Motion_correction=1;
 end
 
+
 % update excle to keep track on stuff. 
 T = struct2table(pathways);
 writetable(T,'Z:\Data\DanaTemp\PreProcessing\new_data\pathways.xlsx')

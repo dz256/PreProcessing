@@ -40,11 +40,11 @@ function r_out=extract_trace(r_in, GUIpick,filelist,Rdir)
         for roi_idx=1:numel(r_in)
             current_mask = zeros(1,InfoImage(1).Height*InfoImage(1).Width);
             try
-                current_mask(r_in(roi_idx).pixel_idx) = 1;
-                r_out(roi_idx).pixel_idx = r_in(roi_idx).pixel_idx;
+                current_mask(r_in(roi_idx).PixelIdxList) = 1;
+                r_out(roi_idx).PixelIdxList = r_in(roi_idx).PixelIdxList;
             catch
-                current_mask(r_in(roi_idx).pixel_idx) = 1;
-                r_out(roi_idx).pixel_idx = r_in(roi_idx).pixel_idx;
+                current_mask(r_in(roi_idx).PixelIdxList) = 1;
+                r_out(roi_idx).PixelIdxList = r_in(roi_idx).PixelIdxList;
             end
             
             current_trace = (current_mask*f_matrix)/sum(current_mask);

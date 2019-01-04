@@ -1,4 +1,4 @@
-function R_r = markRedCells(Ired,Ic,R)
+function R_s = markRedCells_New(Ired,Ic,R,PV)
     %This function help identify which cells are PV/Chol
     %Input:
     %   Ired - The tdTomato image
@@ -66,7 +66,7 @@ function R_r = markRedCells(Ired,Ic,R)
         mb = msgbox('Zoom to desired area and pick landmark on the **gCamp** image');
         zoom on;
         pause
-        [x,y] = getpts(pc)
+        [x,y] = getline(pc)
         xc = [xc;x];
         yc = [yc;y];
         hold on 
@@ -77,7 +77,7 @@ function R_r = markRedCells(Ired,Ic,R)
         pr
         zoom on;
         pause
-        [x,y] = getpts(pr)
+        [x,y] = getline(pr)
         xr = [xr;x];
         yr = [yr;y];
         button = questdlg('Would you  like to add more landmarks?','More rois?','Yes','No','Yes');
@@ -89,12 +89,8 @@ function R_r = markRedCells(Ired,Ic,R)
    end
    zoom reset
    outputView = imref2d(size(Ired));
-   if numel(xr)>2
-    tform = estimateGeometricTransform([xr,yr],[xc,yc],'similarity');
-    Ir = imwarp(Ired,tform,'OutputView',outputView);
-   else
-    Ir = Ired;
-   end
+   tform = estimateGeometricTransform([xr,yr],[xc,yc],'similarity')
+   Ir = imwarp(Ired,tform,'OutputView',outputView);
    figure;
    subplot(2,2,1)
    imshow(Ic,[minc,maxc])
@@ -110,5 +106,12 @@ function R_r = markRedCells(Ired,Ic,R)
    
    mb = msgbox('Please remove any ROIs that are marked with tdTomato');
    [~, R_r] = SemiSeg_Remove(Ir,R)
-
+   R_s = R;
+   if PV
+    [R_s.isPV] = deal(0);
+    [R_s(R_r).isPV] = deal(1);
+   else
+    [R_s.isChol] = deal(0);
+    [R_s(R_r).isChol] = deal(1); 
+   end
 end

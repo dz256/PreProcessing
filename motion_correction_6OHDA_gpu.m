@@ -2,7 +2,7 @@ function motion_correction_6OHDA_gpu(filename, suffix, savedir) %modified by mic
 
 % motion correct each file and save it with 'm_' at the beginning for raw
 % data and 'm_f_' for homomorphic filtered version
-
+    g = gpuDevice(1);
     whole_tic = tic;
     if nargin < 1 || isempty(filename)
         [fname,fdir] = uigetfile('*.tif','MultiSelect','on');
@@ -22,9 +22,10 @@ function motion_correction_6OHDA_gpu(filename, suffix, savedir) %modified by mic
         framestart = 1;   % remember to add to argumaent list if needed.
     %end
     
-    fprintf(['Extracting Time Stemps']);
-    tiffTs = getAllTimeStamps(filename);
-    save([savedir,'tiffTs_',suffix],'tiffTs')
+ %   fprintf(['Extracting Time Stemps']);
+ %   tiffTs = getAllTimeStamps(filename);
+ %   save([savedir,'tiffTs_',suffix],'tiffTs')
+    tiffTs = [];
     short_fname = filename;
     nFiles = numel(filename);
     fprintf(['Total file number: ',num2str(nFiles),'\n']);
@@ -37,9 +38,9 @@ function motion_correction_6OHDA_gpu(filename, suffix, savedir) %modified by mic
         fprintf(['Getting info from ',short_fname{n},'\n']);
     %     tifFile(n).fileName = fname{n};
         tifFile(n).fileName = filename{n};
-        tifFile(n).tiffTags = imfinfo(filename{n});
-        tifFile(n).nFrames = numel(tifFile(n).tiffTags);
-        tifFile(n).frameSize = [tifFile(n).tiffTags(1).Height tifFile(n).tiffTags(1).Width];
+ %       tifFile(n).tiffTags = imfinfo(filename{n});
+ %       tifFile(n).nFrames = numel(tifFile(n).tiffTags);
+ %       tifFile(n).frameSize = [tifFile(n).tiffTags(1).Height tifFile(n).tiffTags(1).Width];
     end
 
     for n = 1:nFiles
@@ -48,10 +49,15 @@ function motion_correction_6OHDA_gpu(filename, suffix, savedir) %modified by mic
         fname = tifFile(n).fileName;
 
         % LOAD FILE
-        [data, info, ~] = loadTif(fname);
-        data = gpuArray(uint16(data));
+        [data, info, ~] = tiff2matrix(fname);
+        for tif= 1:numel(info)
+             currtime = getTimeStamp(info(tif));
+             tiffTs = cat(1,tiffTs,currtime.seconds);
+        end
+      
+        %data = gpuArray(uint16(data));
 
-        if n==1 % for files with messed up time stamps...
+        if n==1 % for files with messed up time stamps
             data = data(:,:,framestart:end);
         end
         % ------------------------------------------------------------------------------------------
@@ -63,46 +69,70 @@ function motion_correction_6OHDA_gpu(filename, suffix, savedir) %modified by mic
         if n==1
             [data_m_f, procstart_m_f.hompre] = homomorphicFilter(data);
         else
-            [data_m_f, procstart_m_f.hompre] = homomorphicFilter(data, procstart_m_f.hompre);
+            [data_m_f, procstart_m_f.hompre] = homomorphicFilter(data, procstart_m_f.hompre,n,g);
         end
-        clear data
-        %     procstart.procstep.illuminationcorrected = data(:,:,representativeFrameIdx);
+        
+        
+       %data = gather(data);
+        
+        
+        
+       
 
         % CORRECT FOR MOTION (IMAGE STABILIZATION)
         if n ==1
             [data_m_f, procstart_m_f.xc,procstart_m_f.prealign] = correctMotion_std(data_m_f);
+            %minI = gather(min(data_m_f,[],3));
+            %maxI = gather(max(data_m_f,[],3));
+            minI = min(data_m_f,[],3);
+            maxI = max(data_m_f,[],3);
         else
             [data_m_f, procstart_m_f.xc,procstart_m_f.prealign] = correctMotion_std(data_m_f,procstart_m_f.prealign);
+            %minI = gather(cat(3,minI,max(data_m_f,[],3)));
+            %maxI = gather(cat(3,maxI,min(data_m_f,[],3)));
+            minI = cat(3,minI,max(data_m_f,[],3));
+            maxI = cat(3,maxI,min(data_m_f,[],3));
         end
-
-        data_m_f = gather(data_m_f);
+        % to make sure it is actually cleared...
+         data_m_f = gpuArray([]);
+         clear data_m_f 
+         
+        
+         
+         [data, ~] = apply_correctMotion(data, procstart_m_f.prealign);
          if n == 1
-             [data_m_f, procstart_mf.norm] = normalizeData(data_m_f);
+             [data_m_f, procstart_mf.norm] = normalizeData(data);
          else
-             [data_m_f, procstart_mf.norm] = normalizeData(data_m_f, procstart_mf.norm);
+             [data_m_f, procstart_mf.norm] = normalizeData(data, procstart_mf.norm);
          end
-
-%        [data_m, ~] = apply_correctMotion(data, procstart_m_f.prealign);
-%        fprintf(['Saving ',short_fname{n},'\n']);
-%        save_filename = ['m_',suffix,'_',num2str(n)];
-%        matrix2tiff(data_m, save_filename, 'w');
-%        fprintf(['\t',num2str(round(toc(single_tic)/60,2)),' minutes.\n']);
-
-         %mike added this piece
+                  
          fprintf(['Saving ',short_fname{n},'\n']);
-         save_filename = [savedir,'m_f_n_',suffix,'_',num2str(n)];
+         save_filename = [savedir,'Processed_tifs/m_n_',suffix,'_',num2str(n)];
          matrix2tiff(data_m_f, save_filename, 'w');
-         %save(save_filename,'data_m_f');
+         % save the frame shifts:
+         sh = procstart_m_f.prealign;
+         save([savedir,'shifts_',suffix,'_',num2str(n)],'sh');
          fprintf(['\t',num2str(round(toc(single_tic)/60,2)),' minutes.\n']);
+         
+        
+         
+         
 
     end
+    fprintf('Saving max-min and time stemps')
+    I = max(maxI,[],3) - min(minI,[],3);
+    %I = gather(I);
+    %save([savedir,'minmax_matlab/MaxMin_',suffix],'I')
+    matrix2tiff(I,[savedir,'min_max/MaxMin_',suffix], 'w');
+    save([savedir,'tiffTs/tiffTs_',suffix],'tiffTs')
+    clear I
     fprintf(['Total processing time: ',num2str(round(toc(whole_tic)/60,2)),' minutes.\n']);
-
+    reset(g)
 
 end
 
-function [data, pre] = homomorphicFilter(data,pre)
-% Implemented by Mark Bucklin 6/12/2014 edited by Dana 5/17/2018
+function [data, pre] = homomorphicFilter(data,pre,verb,g)
+% Implemented by Mark Bucklin 6/12/2014 edited by Dana 5/17/2018+ 3/11/2018
 % More info HERE: http://www.cs.sfu.ca/~stella/papers/blairthesis/main/node35.html
 %% DEFINE PARAMETERS and PROCESS INPUT
 % gpu = gpuDevice(1);
@@ -116,6 +146,7 @@ if nargin < 2
 	%    pre.dmin = getNearMin(data);
 	pre.dmax = max(data(:));
 	pre.dmin = min(data(:));
+    verb= 1;
 end
 inputScale = single(pre.dmax - pre.dmin);
 inputOffset = single(pre.dmin);
@@ -128,14 +159,22 @@ N = sz(3);
 nPixPerFrame = sz(1) * sz(2);
 nBytesPerFrame = nPixPerFrame * 2;
 
+
 % multiWaitbar('Applying Homomorphic Filter',0);
 ioLast= nan;
+disp('start loop')
 for k=1:N
-    im = data(:,:,k);
+    
+    %im = data(:,:,k);
+    il = gpuArray(uint16(data(:,:,k)));
+    im = medfilt2(il);
+    %im = medfilt2(data(:,:,k));
+    %add median filter to pipeline
     imGray =  (single(im) - inputOffset)./inputScale   + 1;					% {1..2}
 		% USE MEAN TO DETERMINE A SCALAR BASELINE ILLUMINATION INTENSITY IN LOG DOMAIN
-		io = log( mean(imGray(imGray<median(imGray(:))))); % mean of lower 50% of pixels		% {0..0.69}
-		if isnan(io)
+        mK = median(imGray(:));
+        io = log( mean(imGray(imGray<mK))); % mean of lower 50% of pixels		% {0..0.69}
+        if isnan(io)
 			if ~isnan(ioLast)
 				io = ioLast;
 			else
@@ -150,11 +189,9 @@ for k=1:N
 		imGray = exp( imGray - imLp + io) - 1;			% {0..2.72?} -> {-1..1.72?}
 		% RESCALE FOR CONVERSION BACK TO ORIGINAL DATATYPE
 		imGray = imGray .* outputScale  + outputOffset;
-		% CLEAN UP LOW-END (SATURATE TO ZERO OR 100)
-		% 	  im(im<outputRange(1)) = outputRange(1);
-		% CAST TO ORIGINAL DATATYPE (UINT16) AND RETURN
 		im = uint16(imGray);
-	data(:,:,k) = im;
+	data(:,:,k) = gather(im);
+    [im, imGray, imLp] = deal(gpuArray([]));
 end
 
 end
@@ -242,7 +279,7 @@ nFrames = size(data,3);
 
 
 % ESTIMATE IMAGE DISPLACEMENT USING NORMXCORR2 (PHASE-CORRELATION)
-    for k = 1:nFrames
+    parfor k = 1:nFrames
 
         maxOffset = prealign.offset(k).maxOffset;
         yPadSub_dy = prealign.offset(k).yPadSub_dy;
@@ -329,7 +366,7 @@ function winRectangle = selectWindowForMotionCorrection(data, winsize)
     winRectangle = [win.cols(1) , win.rows(1) , win.cols(end)-win.cols(1) , win.rows(end)-win.rows(1)];
 end
 
-function [f_matrix] = tiff2matrix(filename)
+function [f_matrix, InfoImage,a] = tiff2matrix(filename)
 
     InfoImage = imfinfo(filename);
     NumberImages=length(InfoImage);
@@ -337,7 +374,7 @@ function [f_matrix] = tiff2matrix(filename)
     f_matrix = zeros(InfoImage(1).Height,InfoImage(1).Width,NumberImages,'uint16');
 
     %multiWaitbar(['Loading file: ',filename], 0 );
-
+    a=5;
 
     for i=1:NumberImages
         f_matrix(:,:,i) = imread(filename,'Index',i,'Info',InfoImage);
@@ -345,4 +382,15 @@ function [f_matrix] = tiff2matrix(filename)
     end
     %multiWaitbar('CLOSEALL');
 
+end
+
+function ts = getTimeStamp(info)  %Mark wrote this function, but doesn't like documenting his code
+ imDes = info.ImageDescription;
+
+[idLines,~] = strsplit(imDes,'\r\n');
+tfsLine = idLines{strncmp(' Time_From_Start',idLines,12)};
+tfsNum = sscanf(tfsLine,' Time_From_Start = %d:%d:%f');
+ts.hours = tfsNum(1) + tfsNum(2)/60 + tfsNum(3)/3600;
+ts.minutes = tfsNum(1)*60 + tfsNum(2) + tfsNum(3)/60;
+ts.seconds = tfsNum(1)*3600 + tfsNum(2)*60 + tfsNum(3);
 end
