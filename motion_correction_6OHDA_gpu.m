@@ -1,4 +1,4 @@
-function motion_correction_6OHDA_gpu(filename, suffix, savedir) %modified by michael romano and then Dana Zemel
+function motion_correction_6OHDA_gpu(filename, suffix, savedir, framestart) %modified by michael romano and then Dana Zemel
 
 % motion correct each file and save it with 'm_' at the beginning for raw
 % data and 'm_f_' for homomorphic filtered version
@@ -18,9 +18,9 @@ function motion_correction_6OHDA_gpu(filename, suffix, savedir) %modified by mic
         end
     end
 
-    %if nargin < 3        %all my vidoes need to be processed from first frame....
+    if nargin <= 3        %all my vidoes need to be processed from first frame....
         framestart = 1;   % remember to add to argumaent list if needed.
-    %end
+    end
     
  %   fprintf(['Extracting Time Stemps']);
  %   tiffTs = getAllTimeStamps(filename);
@@ -59,6 +59,7 @@ function motion_correction_6OHDA_gpu(filename, suffix, savedir) %modified by mic
 
         if n==1 % for files with messed up time stamps
             data = data(:,:,framestart:end);
+            tiffTs = tiffTs(framestart:end);
         end
         % ------------------------------------------------------------------------------------------
         % FILTER & NORMALIZE VIDEO, AND SAVE AS UINT8

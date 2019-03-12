@@ -111,20 +111,10 @@ for s = 1:numel(Sess)
     [r_out(badIndices).skip] = deal(1);
     
     % match red cells on reducted list:
-    R_s = markRedCells(Ired,I,R([r_out(:).skip]~=1));
+    R_s = markRedCells(Ired,I,R);
     close all
     if numel(R_s)>0
-        % dumbest way to make simple assignments but structs are dumb:
-        v = 1;
-        for j=1:numel(r_out)
-            if r_out(j).skip==1;
-                continue
-            end
-            if ismember(v,R_s)
-                r_out(j).TD = 1
-            end
-            v = v+1;
-        end
+     [r_out(R_s).TD] =deal(1);
     end
     
     save([tracedir,'trace_',suffix,'.mat'],'r_out');

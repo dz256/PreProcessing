@@ -15,7 +15,7 @@ for s = 1:numel(Sess)
     vidList = dir(['/home/dana_z/handata2/Dana/',suffix(1:4),'/*',suffix(5:end),'/*.tif']);
     greens = 1:numel(vidList);
     for r=1:numel(vidList)
-         if numel(vidList(r).name(cell2mat(regexp({vidList(r).name}, '(green)')):end))~=0
+         if numel(vidList(r).name(cell2mat(regexpi({vidList(r).name}, '(green)')):end))~=0
            greens(r) = -1;
          end
     end
@@ -36,6 +36,15 @@ for s = 1:numel(Sess)
         end
         vidList = vidList(greens==-1);
         clear r greens
+        if numel(vidList)>1
+            for r=1:numel(vidList)
+                 if numel(vidList(r).name(cell2mat(regexpi({vidList(r).name}, '(zstack|z stack)')):end))==0
+                   greens(r) = -1;
+                 end
+            end
+            vidList = vidList(greens==-1);
+            clear r greens
+        end
         if numel(vidList) ==0
              update(conn,'data','green',57,sprintf("Where Suffix= '%s'",suffix));
              continue
@@ -43,7 +52,11 @@ for s = 1:numel(Sess)
     end
     % error catching and old mice handling:  
     fname = [vidList.folder,'/',vidList.name];
-    [data, info, ~] = tiff2matrix(fname); 
+    try
+        [data, info, ~] = tiff2matrix(fname);
+    catch
+        continue
+    end
     [data_m_f, procstart_m_f.hompre] = homomorphicFilter(data);
     [data_m_f, procstart_m_f.xc,procstart_m_f.prealign] = correctMotion_std(data_m_f);
     Ired = max(data_m_f,[],3);

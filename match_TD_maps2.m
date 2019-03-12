@@ -10,11 +10,11 @@ conn = database('preProcess','auto_processing','dz_preProcess', ...
     'Vendor','MySQL', ...
     'Server','localhost');
 
-Sess =  table2array(select(conn, 'Select Suffix from data where green=1 and trace_extract=1 and red_match<>1;'));
+Sess =  table2array(select(conn, 'Select Suffix from data where green=1 and trace_extract=1 and red_match=0;'));
 
 % define importent paths:
 greendir = '/home/dana_z/HD2/green/';
-tracedir = '/home/dana_z/HD2/traces/';
+tracedir = '/home/dana_z/HD2/tracesMC2/';
 ROIdir = '/home/dana_z/HD1/ROIs/';
 TSdir = '/home/dana_z/HD1/tiffTs/';
 mmdir = '/home/dana_z/HD1/min_max/MaxMin_';
@@ -24,7 +24,7 @@ for s = 1:numel(Sess)
     suffix = char(Sess(s));
     
     %load trace, TD maps, and ROI:
-    load([tracedir,'trace_',suffix,'.mat']);
+    load([tracedir,'traceMC2_',suffix,'.mat']);
     load([ROIdir,'ROI_manual_',suffix,'.mat']);
     load([greendir,'Ired_',suffix,'.mat']);
     load([TSdir,'tiffTs_',suffix,'.mat']);
@@ -40,6 +40,9 @@ for s = 1:numel(Sess)
     [r_out(:).perimeter] = R(:).perimeter;
     [r_out(:).skip] = deal(0);
     [r_out(:).TD] = deal(0);
+    for col = 1:numel(r_out)
+        r_out(col).color = rand(1,3);
+    end
     
     % calc delta f over f, detrend traces, and interpolate time stemps:
     
@@ -60,6 +63,7 @@ for s = 1:numel(Sess)
     try
     traces = interp1(tiffTs,rawTraces,t,'pchip');
     catch em
+        update(conn,'data','red_match',64,sprintf("Where Suffix= '%s'",suffix))
         continue
     end
     
@@ -75,15 +79,17 @@ for s = 1:numel(Sess)
     %dff =  bsxfun(@rdivide, bsxfun(@minus,traces, movmean(traces,[1200,1200],1,'omitnan')), movmean(traces,[1200,1200],1,'omitnan'));
     % plot traces for first 10 min:
     tPre = find(t<=600,1,'last');
-     nhat = max(max(dff(1:tPre,:)));
-    [~, badIndices] =markBadTraces(t(1:tPre), dff(1:tPre,:), nhat*3, r_out);
+     nhat = nanmedian(max(dff(1:tPre,:)));
+    [~, badIndices] =markBadTraces(t(1:tPre), dff(1:tPre,:), nhat*2, r_out);
     
+    tPost = find(t>900,1,'first');
     % plot traces for post infusion period for "bad indeces" to make sure these aren't real indicies:
-    if numel(badIndices)>0
-        tPost = find(t>900,1,'first');
-        nhat = max(max(dff(tPost:end,badIndices)));
+    if numel(badIndices)>0 && numel(tPost)>0
+        
+        %nhat = max(max(dff(tPost:end,badIndices)));
         %[~, realbadInd] =markBadTraces(t(tPost:end), dff(tPost:end,badIndices), abs(nhat)*10, r_out(badIndices));
-        [~, realbadInd] =markBadTraces(t(tPost:end), dff(tPost:end,badIndices), abs(nhat)*10, r_out(badIndices));
+        nhat = median(max(traces(tPost:end,badIndices)));
+        [~, realbadInd] =markBadTraces(t(tPost:end), traces(tPost:end,badIndices), abs(nhat)*3, r_out(badIndices));
 
         if numel(realbadInd)>0
             ind = 1:numel(badIndices);
@@ -108,20 +114,10 @@ for s = 1:numel(Sess)
     [r_out(badIndices).skip] = deal(1);
     
     % match red cells on reducted list:
-    R_s = markRedCells(Ired,I,R([r_out(:).skip]~=1));
+    R_s = markRedCells(Ired,I,R);
     close all
     if numel(R_s)>0
-        % dumbest way to make simple assignments but structs are dumb:
-        v = 1;
-        for j=1:numel(r_out)
-            if r_out(j).skip==1;
-                continue
-            end
-            if ismember(v,R_s)
-                r_out(j).TD = 1
-            end
-            v = v+1;
-        end
+     [r_out(R_s).TD] =deal(1);
     end
     
     save([tracedir,'trace_',suffix,'.mat'],'r_out');
