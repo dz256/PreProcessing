@@ -9,30 +9,30 @@ function [CellList, allRemoved] = SemiSeg_Remove(singleFrame, inputCellList)
     Min = 0; Max = 5000;
     mainfig = figure;
     H = imshow(singleFrame, [Min Max]); title('Select rois to Remove');
-    while(true) %Adjust Contrast
-        answer = inputdlg({'Min','Max'}, 'Contrast',1,{num2str(Min),num2str(Max)});
-        Min = str2double(answer{1});
-        Max = str2double(answer{2});
-        figure(mainfig)
-        H = imshow(singleFrame, [Min Max]); title('Adjust Contrast');
-        button = questdlg('Is this okay?',...
-            'Select this Contrast Level?','Yes','No','Yes');
-        if strcmp(button,'Yes')
-            break
-        else
-            continue
-        end
-    end
+%     while(true) %Adjust Contrast
+%         answer = inputdlg({'Min','Max'}, 'Contrast',1,{num2str(Min),num2str(Max)});
+%         Min = str2double(answer{1});
+%         Max = str2double(answer{2});
+%         figure(mainfig)
+%         H = imshow(singleFrame, [Min Max]); title('Adjust Contrast');
+%         button = questdlg('Is this okay?',...
+%             'Select this Contrast Level?','Yes','No','Yes');
+%         if strcmp(button,'Yes')
+%             break
+%         else
+%             continue
+%         end
+%     end
     hold on
     
     %Select between Kyle & Simon's ROIs
-    rois_type = questdlg('Select ROI Type','What Code Generated the ROIs?','Simons','Kyles','Simons');
-    switch rois_type
-        case 'Simons'
-            pixel_list = 'pixel_idx';
-        case 'Kyles'
+%     rois_type = questdlg('Select ROI Type','What Code Generated the ROIs?','Simons','Kyles','Simons');
+%     switch rois_type
+%         case 'Simons'
+%             pixel_list = 'pixel_idx';
+%         case 'Kyles'
             pixel_list = 'PixelIdxList';
-    end
+%     end
     
     smpos = 1;
     if ~isempty(inputCellList) %If given input CellList
@@ -62,7 +62,7 @@ function [CellList, allRemoved] = SemiSeg_Remove(singleFrame, inputCellList)
     
     %Start in on ROI Selection to remove
     while(true)
-        mb = msgbox('Zoom to desired area');
+       % mb = msgbox('Zoom to desired area');
         zoom on;
         pause
         [clickx, clicky]  = getpts;

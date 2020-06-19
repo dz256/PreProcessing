@@ -27,7 +27,7 @@ for im = 1:numel(Sess)
     else
         Tifdir = tifdir;
     end
-    rawFiles = dir(['/home/dana_z/handata2/Dana/',suffix(1:4),'/*',suffix(5:end),'/*.tif']);
+    rawFiles = dir(['/home/dana_z/handata2/Dana_Zemel/',suffix(1:4),'/*',suffix(5:end),'/*.tif']);
     raws = 0;
     for r= 1:numel(rawFiles)
         if numel(rawFiles(r).name(cell2mat(regexp({rawFiles(r).name}, '(green)')):end))==0

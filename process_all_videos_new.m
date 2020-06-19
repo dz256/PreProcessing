@@ -57,7 +57,11 @@ for m = 1:numel(miceN)
         cd(vidList(1).folder)
         try
         startFrame =  table2array(select(conn,['Select skipFrames from data where Suffix="',suffix,'";']));
-        startFrame = max(startFrame,1);
+        if isempty(startFrame)
+            startFrame = 1;
+        else
+            startFrame = max(startFrame,1);
+        end
         motion_correction_6OHDA_gpu(filename, suffix, savedir,startFrame)
         cd /home/dana_z/ssd_2TB/PreProcessing
         try

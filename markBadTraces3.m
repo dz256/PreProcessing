@@ -1,5 +1,6 @@
-function [goodIndices, badIndices] = markBadTraces(t, dff, nhat, r_out)
+function [goodIndices, badIndices, badIndicesH] = markBadTraces3(t, dff, nhat, dffH,nhatH,colors)
     badIndices = [];
+%    badIndicesH = [];
     % following function modified from https://gist.github.com/cholland29/3107790
     function OnClickAxes(hax, evt)
         point1 = get(hax,'CurrentPoint'); % corner where rectangle starts ( initial mouse down point )
@@ -35,19 +36,31 @@ function [goodIndices, badIndices] = markBadTraces(t, dff, nhat, r_out)
     end
     
     h = figure;
-    for val=1:numel(r_out)
-        plot(t,dff(:,val)+nhat*(val-1),'color',r_out(val).color);
+    for val=1:size(dff,2)
+        plot(t,dff(:,val)+nhat*(val-1),'Color',colors(val,:));
         hold on
     end
-   set(h.Children(1), 'ButtonDownFcn',@OnClickAxes);
-    for lim=0:nhat*3:(nhat*numel(r_out))
+    hold off
+    k = figure;
+    for val=1:size(dffH,2)
+        plot(t,dffH(:,val)+nhatH*(val-1),'Color',colors(val,:));
+        hold on
+    end
+    hold off
+    
+    set(h.Children(1), 'ButtonDownFcn',@OnClickAxes);
+    for l_n = 0:3:size(dff,2)
+        lim=nhat*l_n;
+        lim2=nhatH*l_n;
+        figure(1)
         ylim([lim-nhat lim+nhat*3]);
+        figure(2)
+        ylim([lim2-nhatH lim2+nhatH*3]);
         pause
     end
-
-
     badIndices = unique(badIndices);
-    goodIndices = setdiff(1:size(dff,1), badIndices);
+%    badIndicesH = unique(badIndicesH);
+    goodIndices = setdiff(1:size(dff,2), badIndices);
 %    close all
 end
 

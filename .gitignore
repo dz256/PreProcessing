@@ -8,6 +8,8 @@
 *.fdf
 *.fif
 *.fhf
+*.h5
+*.hdf5
 
 *.elp
 *.fdt

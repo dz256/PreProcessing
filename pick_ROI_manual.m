@@ -8,7 +8,7 @@ conn = database('preProcess','auto_processing','dz_preProcess', ...
     'Server','localhost');
 
 % list of sesions where motion corrected, but ROI not selected:
-Sess =  table2array(select(conn, 'Select Suffix from data where MC=1 AND ROI<>1;'));
+Sess =  table2array(select(conn, 'Select Suffix from data_final where MC=1 AND ROI<>1;'));
 
 for im = 1:numel(Sess)
     suffix = char(Sess(im));

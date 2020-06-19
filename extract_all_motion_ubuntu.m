@@ -12,7 +12,7 @@ Sess =  table2array(select(conn, 'Select Suffix from data where mvmt=0;'));
 for j=1:numel(Sess)
    suffix = char(Sess(j));
     
-    mdir = dir(['/home/dana_z/handata2/Dana/',num2str(suffix(1:4)),'/*_',num2str(suffix(6:end)),'/']);
+    mdir = dir(['/home/dana_z/handata2/Dana_Zemel/',num2str(suffix(1:4)),'/*_',num2str(suffix(6:end)),'/']);
     mdir = mdir([mdir(:).isdir] ==1);
     mdir = mdir(~ismember({mdir(:).name},[".","..","take-1"])); 
     if numel(mdir) ~= 1

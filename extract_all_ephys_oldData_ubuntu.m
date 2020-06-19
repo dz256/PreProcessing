@@ -4,15 +4,16 @@ conn = database('preProcess','auto_processing','dz_preProcess', ...
     'Vendor','MySQL', ...
     'Server','localhost');
 
-Sess =  table2array(select(conn, 'Select Suffix from data where Ephys=1 and mouse_num not in (4539,7909,7584);'));
+Sess =  table2array(select(conn, 'Select Suffix from data where Ephys=0 and mouse_num in (4539,7909,7584);'));
 
 saveDir = '/home/dana_z/HD1/extracted_ephys_matlab/';
 
 for j=1:numel(Sess)
     suffix = char(Sess(j));
     mouse = suffix(1:4);
+    
     tankList = dir(['/home/dana_z/handata2/Dana_Zemel/',mouse,...
-        '/ePhys/*_',suffix]);
+        '/ePhys/*',suffix(6:end)]);
     if(numel(tankList) == 0)
         continue
     end

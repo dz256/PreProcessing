@@ -1,70 +1,126 @@
-% process all videos (only save filtered-Normalize copy)
+function motion_correction_6OHDA_generate_starts(filename, suffix, savedir, framestart) %modified by michael romano and then Dana Zemel
 
-savedir = '/home/dana_z/HD2/green/';
-conn = database('preProcess','auto_processing','dz_preProcess', ...
-    'Vendor','MySQL', ...
-    'Server','localhost');
-
-% list of sesions where motion corrected, but ROI not selected:
-Sess =  table2array(select(conn, 'Select Suffix from data where green<>1;'));
-for s = 1:numel(Sess)
-     timeLoop = tic;
-    suffix = char(Sess(s));
-    
-    % find the green video:
-    vidList = dir(['/home/dana_z/handata2/Dana_Zemel/',suffix(1:4),'/*',suffix(5:end),'/*.tif']);
-    greens = 1:numel(vidList);
-    for r=1:numel(vidList)
-         if numel(vidList(r).name(cell2mat(regexpi({vidList(r).name}, '(green)')):end))~=0
-           greens(r) = -1;
-         end
-    end
-    vidList = vidList(greens==-1);
-    clear r greens
-    
-    % error catching and old mice handling:
-    if numel(vidList) ==0
-        % no green tif, skip with code 56
-        update(conn,'data','green',56,sprintf("Where Suffix= '%s'",suffix));
-        continue
-    elseif numel(vidList)>1
-        greens = 1:numel(vidList);
-        for r=1:numel(vidList)
-             if numel(vidList(r).name(cell2mat(regexp({vidList(r).name}, '(200)')):end))~=0
-               greens(r) = -1;
-             end
-        end
-        vidList = vidList(greens==-1);
-        clear r greens
-        if numel(vidList)>1
-            for r=1:numel(vidList)
-                 if numel(vidList(r).name(cell2mat(regexpi({vidList(r).name}, '(zstack|z stack)')):end))==0
-                   greens(r) = -1;
-                 end
-            end
-            vidList = vidList(greens==-1);
-            clear r greens
-        end
-        if numel(vidList) ==0
-             update(conn,'data','green',57,sprintf("Where Suffix= '%s'",suffix));
-             continue
+% motion correct each file and save it with 'm_' at the beginning for raw
+% data and 'm_f_' for homomorphic filtered version
+    g = gpuDevice(1);
+    whole_tic = tic;
+    if nargin < 1 || isempty(filename)
+        [fname,fdir] = uigetfile('*.tif','MultiSelect','on');
+        cd(fdir)
+        switch class(fname)
+            case 'char'
+                filename{1} = fname;
+            case 'cell'
+                filename = cell(numel(fname),1);
+                for n = 1:numel(fname)
+                    filename{n} = fname{n};
+                end
         end
     end
-    % error catching and old mice handling:  
-    fname = [vidList.folder,'/',vidList.name];
-    try
+
+    if nargin <= 3        %all my vidoes need to be processed from first frame....
+        framestart = 1;   % remember to add to argumaent list if needed.
+    end
+    
+ %   fprintf(['Extracting Time Stemps']);
+ %   tiffTs = getAllTimeStamps(filename);
+ %   save([savedir,'tiffTs_',suffix],'tiffTs')
+    tiffTs = [];
+    short_fname = filename;
+    nFiles = numel(filename);
+    fprintf(['Total file number: ',num2str(nFiles),'\n']);
+    tifFile = struct(...
+        'fileName',filename(:),...
+        'tiffTags',repmat({struct.empty(0,1)},nFiles,1),...
+        'nFrames',repmat({0},nFiles,1),...
+        'frameSize',repmat({[1024 1024]},nFiles,1));
+    for n = 1:nFiles
+        fprintf(['Getting info from ',short_fname{n},'\n']);
+    %     tifFile(n).fileName = fname{n};
+        tifFile(n).fileName = filename{n};
+ %       tifFile(n).tiffTags = imfinfo(filename{n});
+ %       tifFile(n).nFrames = numel(tifFile(n).tiffTags);
+ %       tifFile(n).frameSize = [tifFile(n).tiffTags(1).Height tifFile(n).tiffTags(1).Width];
+    end
+
+    for n = 1:nFiles
+        single_tic = tic;
+        fprintf(['Processing ',short_fname{n},'\n']);
+        fname = tifFile(n).fileName;
+
+        % LOAD FILE
         [data, info, ~] = tiff2matrix(fname);
-    catch
-        continue
+        for tif= 1:numel(info)
+             currtime = getTimeStamp(info(tif));
+             tiffTs = cat(1,tiffTs,currtime.seconds);
+        end
+      
+        %data = gpuArray(uint16(data));
+
+        if n==1 % for files with messed up time stamps
+            data = data(:,:,framestart:end);
+            tiffTs = tiffTs(framestart:end);
+        end
+        % ------------------------------------------------------------------------------------------
+        % FILTER & NORMALIZE VIDEO, AND SAVE AS UINT8
+        % ------------------------------------------------------------------------------------------
+
+
+        % PRE-FILTER TO CORRECT FOR UNEVEN ILLUMINATION (HOMOMORPHIC FILTER)
+        if n==1
+            [data_m_f, procstart_m_f.hompre] = homomorphicFilter(data);
+        else
+            [data_m_f, procstart_m_f.hompre] = homomorphicFilter(data, procstart_m_f.hompre,n,g);
+        end
+        
+        
+       %data = gather(data);
+        
+        
+        
+       
+
+        % CORRECT FOR MOTION (IMAGE STABILIZATION)
+        if n ==1
+            [data_m_f, procstart_m_f.xc,procstart_m_f.prealign] = correctMotion_std(data_m_f);
+            %minI = gather(min(data_m_f,[],3));
+            %maxI = gather(max(data_m_f,[],3));
+            minI = min(data_m_f,[],3);
+            maxI = max(data_m_f,[],3);
+        else
+            [data_m_f, procstart_m_f.xc,procstart_m_f.prealign] = correctMotion_std(data_m_f,procstart_m_f.prealign);
+            %minI = gather(cat(3,minI,max(data_m_f,[],3)));
+            %maxI = gather(cat(3,maxI,min(data_m_f,[],3)));
+            minI = cat(3,minI,max(data_m_f,[],3));
+            maxI = cat(3,maxI,min(data_m_f,[],3));
+        end
+        % to make sure it is actually cleared...
+         data_m_f = gpuArray([]);
+         clear data_m_f 
+         
+        
+         
+         % save the frame shifts:
+         sh = procstart_m_f.prealign;
+         save([savedir,'shifts_',suffix,'_',num2str(n)],'sh');
+         fprintf(['\t',num2str(round(toc(single_tic)/60,2)),' minutes.\n']);
+         
+        
+         
+         
+
     end
-    [data_m_f, procstart_m_f.hompre] = homomorphicFilter(data);
-    [data_m_f, procstart_m_f.xc,procstart_m_f.prealign] = correctMotion_std(data_m_f);
-    Ired = max(data_m_f,[],3);
-    save([savedir,'Ired_',suffix],'Ired')
-    update(conn,'data','green',1,sprintf("Where Suffix= '%s'",suffix));
-    disp(['finished Ired for ',suffix, '. total time: ',num2str(toc(timeLoop)),'s'])
-    
-end  
+    fprintf('Saving max-min and time stemps')
+    I = max(maxI,[],3) - min(minI,[],3);
+    %I = gather(I);
+    %save([savedir,'minmax_matlab/MaxMin_',suffix],'I')
+    matrix2tiff(I,[savedir,'min_max/MaxMin_',suffix], 'w');
+    save([savedir,'tiffTs/tiffTs_',suffix],'tiffTs')
+    clear I
+    fprintf(['Total processing time: ',num2str(round(toc(whole_tic)/60,2)),' minutes.\n']);
+    reset(g)
+
+end
 
 function [data, pre] = homomorphicFilter(data,pre,verb,g)
 % Implemented by Mark Bucklin 6/12/2014 edited by Dana 5/17/2018+ 3/11/2018
@@ -208,6 +264,73 @@ prealign.template = templateFrame;
 
 end
 
+function [data, prealign] = apply_correctMotion(data, prealign)
+fprintf('Applying Correcting Motion \n')
+nFrames = size(data,3);
+
+
+% ESTIMATE IMAGE DISPLACEMENT USING NORMXCORR2 (PHASE-CORRELATION)
+    parfor k = 1:nFrames
+
+        maxOffset = prealign.offset(k).maxOffset;
+        yPadSub_dy = prealign.offset(k).yPadSub_dy;
+        xPadSub_dx = prealign.offset(k).xPadSub_dx;
+
+        % APPLY OFFSET TO FRAME
+        padFrame = padarray(data(:,:,k), [maxOffset maxOffset], 'replicate', 'both');
+        data(:,:,k) = padFrame(yPadSub_dy, xPadSub_dx);
+
+
+
+    end
+
+
+end
+
+function matrix2tiff(f_matrix, filename, method)
+
+    % if ~isempty(dir(filename))
+    %     overwrite = input('File already exists. Overwrite (0-no/1-yes)?');
+    %     if isempty(overwrite) || overwrite==0
+    %         load(fnmat)
+    %         return
+    %     end
+    % end
+
+
+
+    if isempty(strfind(filename,'.tif'))
+        filename = [filename,'.tif'];
+    end
+
+    NumberImages = size(f_matrix,3);
+
+    switch method
+        case 'w'
+            FileOut = Tiff('temp_file','w');
+
+        case 'w8'
+            FileOut = Tiff('temp_file','w8');
+    end
+
+    tags.ImageLength = size(f_matrix,1);
+    tags.ImageWidth = size(f_matrix,2);
+    tags.Photometric = Tiff.Photometric.MinIsBlack;
+    tags.PlanarConfiguration = Tiff.PlanarConfiguration.Chunky;
+    tags.BitsPerSample = 16;
+    setTag(FileOut, tags);
+    FileOut.write(f_matrix(:,:,1));
+    for i=2:NumberImages
+        FileOut.writeDirectory();
+        setTag(FileOut, tags);
+        FileOut.write(f_matrix(:,:,i));
+    end
+    FileOut.close()
+
+    movefile('temp_file',filename);
+
+end
+
 function winRectangle = selectWindowForMotionCorrection(data, winsize)
     if numel(winsize) <2
         winsize = [winsize winsize];
@@ -250,4 +373,15 @@ function [f_matrix, InfoImage,a] = tiff2matrix(filename)
     end
     %multiWaitbar('CLOSEALL');
 
+end
+
+function ts = getTimeStamp(info)  %Mark wrote this function, but doesn't like documenting his code
+ imDes = info.ImageDescription;
+
+[idLines,~] = strsplit(imDes,'\r\n');
+tfsLine = idLines{strncmp(' Time_From_Start',idLines,12)};
+tfsNum = sscanf(tfsLine,' Time_From_Start = %d:%d:%f');
+ts.hours = tfsNum(1) + tfsNum(2)/60 + tfsNum(3)/3600;
+ts.minutes = tfsNum(1)*60 + tfsNum(2) + tfsNum(3)/60;
+ts.seconds = tfsNum(1)*3600 + tfsNum(2)*60 + tfsNum(3);
 end
